@@ -1,0 +1,1272 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="English Trainer">
+<title>English AI Trainer</title>
+<style>
+  :root {
+    --purple-50: #EEEDFE; --purple-200: #AFA9EC; --purple-400: #7F77DD;
+    --purple-600: #534AB7; --purple-800: #3C3489; --purple-900: #26215C;
+    --teal-50: #E1F5EE; --teal-600: #0F6E56; --teal-800: #085041;
+    --amber-50: #FAEEDA; --amber-600: #854F0B; --amber-800: #633806;
+    --red-50: #FCEBEB; --red-600: #A32D2D; --red-800: #791F1F;
+    --green-50: #EAF3DE; --green-600: #3B6D11; --green-800: #27500A;
+    --gray-100: #D3D1C7; --gray-400: #888780; --gray-600: #5F5E5A;
+    --bg: #F7F6F3; --surface: #FFFFFF; --border: #E2E0D8;
+    --text: #1A1A18; --text-secondary: #5F5E5A; --text-hint: #888780;
+    --radius: 12px; --radius-sm: 8px; --radius-pill: 20px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16151A; --surface: #1F1E25; --border: #2E2C38;
+      --text: #F0EFF8; --text-secondary: #9896A8; --text-hint: #6B6978;
+      --shadow: 0 1px 3px rgba(0,0,0,0.3);
+    }
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-size: 16px; -webkit-text-size-adjust: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.6;
+    min-height: 100vh; padding-bottom: env(safe-area-inset-bottom, 20px);
+  }
+
+  /* ── HEADER ── */
+  .app-header {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 16px 20px 12px; position: sticky; top: 0; z-index: 100;
+  }
+  .app-header h1 { font-size: 18px; font-weight: 600; letter-spacing: -0.3px; color: var(--text); }
+  .header-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .header-selects { display: flex; gap: 8px; margin-top: 10px; }
+  .header-selects select {
+    flex: 1; font-size: 13px; padding: 6px 10px;
+    border-radius: var(--radius-sm); border: 1px solid var(--border);
+    background: var(--bg); color: var(--text);
+    -webkit-appearance: none; appearance: none;
+  }
+
+  /* ── API KEY ── */
+  .api-banner {
+    background: var(--amber-50); border: 1px solid #FAC775;
+    border-radius: var(--radius); padding: 14px 16px; margin: 16px;
+  }
+  .api-banner p { font-size: 13px; color: var(--amber-800); margin-bottom: 8px; line-height: 1.5; }
+  .api-banner a { color: var(--purple-600); font-weight: 500; }
+  .api-input-row { display: flex; gap: 8px; }
+  .api-input-row input {
+    flex: 1; font-size: 13px; padding: 8px 10px;
+    border-radius: var(--radius-sm); border: 1px solid #FAC775;
+    background: white; color: #1A1A18;
+  }
+  .api-input-row button {
+    padding: 8px 14px; font-size: 13px; border-radius: var(--radius-sm);
+    background: var(--purple-600); color: white; border: none; cursor: pointer;
+    font-weight: 500; white-space: nowrap;
+  }
+
+  /* ── STATS BAR ── */
+  .stats-bar { display: flex; gap: 8px; padding: 12px 16px; }
+  .stat {
+    flex: 1; background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 10px 8px; text-align: center;
+    box-shadow: var(--shadow);
+  }
+  .stat-num { font-size: 22px; font-weight: 600; color: var(--purple-600); line-height: 1; }
+  .stat-label { font-size: 10px; color: var(--text-secondary); margin-top: 3px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  /* ── TAB BAR ── */
+  .tab-bar {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    position: sticky; top: 95px; z-index: 99;
+  }
+  .tab-btn {
+    padding: 10px 4px; border: none; background: transparent;
+    font-size: 11px; color: var(--text-secondary); cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    border-bottom: 2px solid transparent; transition: all 0.2s;
+    font-family: inherit; font-weight: 500;
+  }
+  .tab-btn svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.8; }
+  .tab-btn.active { color: var(--purple-600); border-bottom-color: var(--purple-600); }
+
+  /* ── PANELS ── */
+  .panel { display: none; padding: 16px; }
+  .panel.active { display: block; }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 18px 16px;
+    box-shadow: var(--shadow); margin-bottom: 14px;
+  }
+  .card h2 { font-size: 17px; font-weight: 600; margin-bottom: 4px; }
+  .card .desc { font-size: 14px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 16px; }
+
+  /* ── SELECTORS ── */
+  .field-label { font-size: 12px; font-weight: 500; color: var(--text-secondary); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .field-row { margin-bottom: 14px; }
+  .field-row select {
+    width: 100%; font-size: 14px; padding: 10px 12px;
+    border-radius: var(--radius-sm); border: 1px solid var(--border);
+    background: var(--bg); color: var(--text); -webkit-appearance: none; appearance: none;
+  }
+
+  /* ── BUTTONS ── */
+  .btn-primary {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 12px 20px; border-radius: var(--radius-sm);
+    background: var(--purple-600); color: white; border: none;
+    font-size: 15px; font-weight: 600; cursor: pointer;
+    font-family: inherit; transition: opacity 0.15s; width: 100%; justify-content: center;
+  }
+  .btn-primary:active { opacity: 0.8; }
+  .btn-primary:disabled { opacity: 0.5; cursor: default; }
+  .btn-secondary {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 11px 16px; border-radius: var(--radius-sm);
+    background: var(--bg); color: var(--text);
+    border: 1px solid var(--border); font-size: 14px;
+    cursor: pointer; font-family: inherit; transition: opacity 0.15s;
+    justify-content: center;
+  }
+  .btn-secondary:active { opacity: 0.7; }
+  .btn-row { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+  .btn-row .btn-primary { flex: 1; }
+  .btn-row .btn-secondary { flex: 0 0 auto; }
+
+  /* ── AI BUBBLE ── */
+  .ai-text {
+    font-size: 15px; line-height: 1.7; color: var(--text);
+    white-space: pre-wrap; word-break: break-word;
+  }
+  .ai-text.loading { color: var(--text-hint); font-style: italic; }
+  .passage-title { font-size: 16px; font-weight: 600; margin-bottom: 10px; }
+
+  /* ── QUESTION TYPES ── */
+  .question-block { margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid var(--border); }
+  .question-block:last-child { border-bottom: none; padding-bottom: 0; }
+  .question-text { font-size: 15px; font-weight: 500; margin-bottom: 10px; line-height: 1.4; }
+  .question-sub { font-size: 13px; color: var(--text-secondary); margin-bottom: 10px; }
+
+  /* Multiple choice */
+  .options-list { display: flex; flex-direction: column; gap: 8px; }
+  .option-btn {
+    padding: 12px 14px; border-radius: var(--radius-sm);
+    border: 1px solid var(--border); background: var(--bg);
+    color: var(--text); font-size: 14px; text-align: left;
+    cursor: pointer; font-family: inherit; transition: all 0.15s; line-height: 1.4;
+  }
+  .option-btn:active { opacity: 0.7; }
+  .option-btn.selected { background: var(--purple-50); border-color: var(--purple-400); color: var(--purple-800); }
+  .option-btn.correct { background: var(--green-50); border-color: #639922; color: var(--green-800); }
+  .option-btn.wrong { background: var(--red-50); border-color: #E24B4A; color: var(--red-800); }
+
+  /* TF / NGiven */
+  .tfng-row { display: flex; gap: 8px; }
+  .tfng-btn {
+    flex: 1; padding: 10px 6px; border-radius: var(--radius-sm);
+    border: 1px solid var(--border); background: var(--bg);
+    color: var(--text); font-size: 13px; font-weight: 500; text-align: center;
+    cursor: pointer; font-family: inherit; transition: all 0.15s;
+  }
+  .tfng-btn.selected { background: var(--purple-50); border-color: var(--purple-400); color: var(--purple-800); }
+  .tfng-btn.correct { background: var(--green-50); border-color: #639922; color: var(--green-800); }
+  .tfng-btn.wrong { background: var(--red-50); border-color: #E24B4A; color: var(--red-800); }
+
+  /* Fill-in */
+  .fill-input {
+    width: 100%; padding: 10px 12px; border-radius: var(--radius-sm);
+    border: 1px solid var(--border); background: var(--bg);
+    color: var(--text); font-size: 14px; font-family: inherit;
+  }
+  .fill-input:focus { outline: none; border-color: var(--purple-400); box-shadow: 0 0 0 3px rgba(127,119,221,0.15); }
+  .fill-input.correct { border-color: #639922; background: var(--green-50); }
+  .fill-input.wrong { border-color: #E24B4A; background: var(--red-50); }
+
+  /* ── FEEDBACK ── */
+  .feedback-card {
+    background: var(--purple-50); border-left: 3px solid var(--purple-400);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    padding: 14px 16px; margin-top: 16px;
+    font-size: 14px; line-height: 1.7; color: var(--text); white-space: pre-wrap;
+  }
+  .score-pill {
+    display: inline-block; padding: 4px 14px; border-radius: var(--radius-pill);
+    font-size: 13px; font-weight: 600; margin-bottom: 10px;
+  }
+  .score-good { background: var(--green-50); color: var(--green-800); }
+  .score-mid { background: var(--amber-50); color: var(--amber-800); }
+  .score-low { background: var(--red-50); color: var(--red-800); }
+
+  /* ── LISTENING ── */
+  .listen-header {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 16px; background: var(--bg);
+    border-radius: var(--radius-sm); border: 1px solid var(--border);
+    margin-bottom: 10px;
+  }
+  .play-circle {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: var(--purple-600); border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; transition: opacity 0.15s;
+  }
+  .play-circle:active { opacity: 0.7; }
+  .play-circle svg { width: 20px; height: 20px; fill: white; stroke: none; }
+  .transcript-toggle { font-size: 13px; color: var(--purple-600); cursor: pointer; font-weight: 500; }
+  .transcript-box { font-size: 14px; color: var(--text-secondary); line-height: 1.7; font-style: italic; padding: 12px 14px; background: var(--bg); border-radius: var(--radius-sm); margin-top: 8px; display: none; }
+
+  /* ── WRITING ── */
+  .writing-textarea {
+    width: 100%; min-height: 180px; padding: 12px 14px;
+    border-radius: var(--radius-sm); border: 1px solid var(--border);
+    background: var(--bg); color: var(--text); font-size: 15px;
+    font-family: inherit; line-height: 1.6; resize: vertical;
+  }
+  .writing-textarea:focus { outline: none; border-color: var(--purple-400); box-shadow: 0 0 0 3px rgba(127,119,221,0.15); }
+  .word-count { font-size: 12px; color: var(--text-hint); text-align: right; margin-top: 4px; }
+
+  /* ── SPEAKING ── */
+  .speaking-card { background: var(--purple-50); border-radius: var(--radius); padding: 16px; margin-bottom: 14px; }
+  .speaking-card .prompt-text { font-size: 16px; font-weight: 500; line-height: 1.5; color: var(--purple-900); white-space: pre-wrap; }
+  .speaking-tips { font-size: 13px; color: var(--text-secondary); line-height: 1.5; padding: 12px 14px; background: var(--bg); border-radius: var(--radius-sm); border: 1px solid var(--border); }
+  .speaking-tips strong { color: var(--text); }
+
+  /* ── MISC ── */
+  .divider { border: none; border-top: 1px solid var(--border); margin: 18px 0; }
+  .hidden { display: none !important; }
+  .loading-dots::after { content: '…'; animation: dots 1.2s steps(3, end) infinite; }
+  @keyframes dots { 0%,100%{content:'.'} 33%{content:'..'} 66%{content:'...'} }
+
+  .section-heading { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-secondary); margin-bottom: 12px; }
+
+  /* ── API MODAL ── */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+    z-index: 200; display: flex; align-items: flex-end; justify-content: center;
+    opacity: 0; pointer-events: none; transition: opacity 0.2s;
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+  .modal-sheet {
+    background: var(--surface); border-radius: 20px 20px 0 0;
+    padding: 24px 20px 40px; width: 100%; max-width: 520px;
+    transform: translateY(40px); transition: transform 0.25s;
+    border: 1px solid var(--border); border-bottom: none;
+  }
+  .modal-overlay.open .modal-sheet { transform: translateY(0); }
+  .modal-handle { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 20px; }
+  .modal-title { font-size: 17px; font-weight: 600; margin-bottom: 6px; }
+  .modal-desc { font-size: 13px; color: var(--text-secondary); margin-bottom: 18px; line-height: 1.5; }
+  .modal-key-display {
+    font-size: 13px; font-family: monospace; background: var(--bg);
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    padding: 10px 12px; margin-bottom: 14px; color: var(--text-secondary);
+    word-break: break-all;
+  }
+  .modal-input {
+    width: 100%; font-size: 14px; padding: 11px 12px;
+    border-radius: var(--radius-sm); border: 1px solid var(--border);
+    background: var(--bg); color: var(--text); margin-bottom: 12px;
+    font-family: monospace;
+  }
+  .modal-input:focus { outline: none; border-color: var(--purple-400); box-shadow: 0 0 0 3px rgba(127,119,221,0.15); }
+  .modal-btn-row { display: flex; gap: 8px; }
+  .btn-danger {
+    padding: 11px 16px; border-radius: var(--radius-sm);
+    background: var(--red-50); color: var(--red-600);
+    border: 1px solid #E24B4A; font-size: 14px; cursor: pointer;
+    font-family: inherit; font-weight: 500;
+  }
+  .api-key-btn {
+    background: none; border: 1px solid var(--border); border-radius: var(--radius-sm);
+    padding: 4px 10px; font-size: 12px; color: var(--text-secondary);
+    cursor: pointer; font-family: inherit; display: flex; align-items: center; gap: 5px;
+    white-space: nowrap;
+  }
+  .api-key-btn svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2; }
+  .key-indicator {
+    width: 7px; height: 7px; border-radius: 50%; display: inline-block;
+    background: #639922; margin-right: 3px;
+  }
+  .key-indicator.missing { background: #E24B4A; }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: #1A1A18; color: white; padding: 10px 20px; border-radius: var(--radius-pill);
+    font-size: 13px; opacity: 0; transition: all 0.3s; z-index: 999; pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="app-header">
+  <div class="header-row">
+    <h1>English AI Trainer</h1>
+    <span style="font-size:12px;color:var(--text-hint)">Cambridge · IELTS</span>
+  </div>
+  <div class="header-selects">
+    <select id="level">
+      <option value="B1">B1 Intermediate</option>
+      <option value="B2" selected>B2 Upper-Int.</option>
+      <option value="C1">C1 Advanced</option>
+      <option value="C2">C2 Proficiency</option>
+    </select>
+    <select id="exam">
+      <option value="Cambridge FCE/CAE">Cambridge</option>
+      <option value="IELTS Academic">IELTS</option>
+    </select>
+  </div>
+</header>
+
+<!-- TAB BAR -->
+<nav class="tab-bar">
+  <button class="tab-btn active" onclick="switchTab('reading')" id="tab-reading">
+    <svg viewBox="0 0 24 24"><path d="M2 6h7a3 3 0 0 1 3 3v11a2.5 2.5 0 0 0-2.5-2.5H2V6z"/><path d="M22 6h-7a3 3 0 0 0-3 3v11a2.5 2.5 0 0 1 2.5-2.5H22V6z"/></svg>
+    Reading
+  </button>
+  <button class="tab-btn" onclick="switchTab('listening')" id="tab-listening">
+    <svg viewBox="0 0 24 24"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>
+    Listening
+  </button>
+  <button class="tab-btn" onclick="switchTab('writing')" id="tab-writing">
+    <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+    Writing
+  </button>
+  <button class="tab-btn" onclick="switchTab('speaking')" id="tab-speaking">
+    <svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8"/></svg>
+    Speaking
+  </button>
+</nav>
+
+<!-- API KEY MODAL -->
+<div class="modal-overlay" id="api-modal" onclick="handleModalClick(event)">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Chiave API Anthropic</div>
+    <div class="modal-desc">La chiave viene salvata solo su questo dispositivo e non viene mai inviata altrove. <a href="https://console.anthropic.com" target="_blank" style="color:var(--purple-600);font-weight:500">Ottienila su console.anthropic.com →</a></div>
+    <div id="modal-current" style="display:none">
+      <div class="field-label" style="margin-bottom:6px">Chiave attiva</div>
+      <div class="modal-key-display" id="modal-key-display"></div>
+    </div>
+    <div class="field-label" style="margin-bottom:6px" id="modal-input-label">Nuova chiave</div>
+    <input type="password" class="modal-input" id="modal-key-input" placeholder="sk-ant-..." autocomplete="off">
+    <div class="modal-btn-row">
+      <button class="btn-primary" onclick="saveApiKeyModal()" style="flex:1">✓ Salva chiave</button>
+      <button class="btn-danger" onclick="deleteApiKey()" id="btn-delete-key" style="display:none">🗑 Elimina</button>
+      <button class="btn-secondary" onclick="closeApiModal()">Annulla</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- ═══ READING ═══ -->
+<div class="panel active" id="panel-reading">
+
+  <!-- INTRO -->
+  <div class="card" id="reading-intro">
+    <h2>Reading</h2>
+    <p class="desc">Brano autentico con domande in stile Cambridge / IELTS. Scegli il tipo di domanda.</p>
+    <div class="field-row">
+      <div class="field-label">Tipo di domanda</div>
+      <select id="reading-type">
+        <option value="multiple_choice">Multiple choice (A B C D)</option>
+        <option value="tfng">True / False / Not Given</option>
+        <option value="sentence_completion">Sentence completion</option>
+        <option value="matching_headings">Matching headings</option>
+      </select>
+    </div>
+    <button class="btn-primary" onclick="startReading()" id="btn-start-reading">
+      ▶ Genera esercizio
+    </button>
+  </div>
+
+  <!-- EXERCISE -->
+  <div id="reading-exercise" class="hidden">
+    <div class="card">
+      <div class="section-heading">Brano</div>
+      <div id="reading-passage"></div>
+    </div>
+    <div class="card" id="reading-q-card">
+      <div class="section-heading" id="reading-q-heading">Domande</div>
+      <div id="reading-questions"></div>
+      <div class="btn-row hidden" id="reading-submit-row">
+        <button class="btn-primary" onclick="submitReading()">✓ Invia risposte</button>
+        <button class="btn-secondary" onclick="resetReading()">↺</button>
+      </div>
+      <div id="reading-feedback" class="hidden"></div>
+      <div class="btn-row hidden" id="reading-next-row">
+        <button class="btn-primary" onclick="startReading()">→ Prossimo brano</button>
+        <button class="btn-secondary" onclick="resetReading()">Menu</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══ LISTENING ═══ -->
+<div class="panel" id="panel-listening">
+  <div class="card" id="listening-intro">
+    <h2>Listening</h2>
+    <p class="desc">L'AI genera un dialogo o monologo realistico. Leggilo come se stessi ascoltando una registrazione, poi rispondi alle domande.</p>
+    <button class="btn-primary" onclick="startListening()">▶ Genera traccia audio</button>
+  </div>
+  <div id="listening-exercise" class="hidden">
+    <div class="card">
+      <div class="listen-header">
+        <button class="play-circle" onclick="playAudio()" id="play-btn" aria-label="Riproduci audio">
+          <svg id="play-icon-svg" viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21" fill="white"/></svg>
+        </button>
+        <div style="flex:1">
+          <div style="font-size:15px;font-weight:600" id="listen-title">Caricamento…</div>
+          <div style="display:flex;gap:12px;margin-top:3px;align-items:center">
+            <span id="audio-status" style="font-size:12px;color:var(--text-hint)">Premi ▶ per ascoltare</span>
+            <span class="transcript-toggle" onclick="toggleTranscript()" id="transcript-toggle-label">Mostra trascrizione</span>
+          </div>
+        </div>
+      </div>
+      <div class="transcript-box" id="transcript-text"></div>
+    </div>
+    <div class="card">
+      <div class="section-heading">Domande di comprensione</div>
+      <div id="listening-questions"></div>
+      <div class="btn-row hidden" id="listening-submit-row">
+        <button class="btn-primary" onclick="submitListening()">✓ Invia risposte</button>
+        <button class="btn-secondary" onclick="resetListening()">↺</button>
+      </div>
+      <div id="listening-feedback" class="hidden"></div>
+      <div class="btn-row hidden" id="listening-next-row">
+        <button class="btn-primary" onclick="startListening()">→ Prossima traccia</button>
+        <button class="btn-secondary" onclick="resetListening()">Menu</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ WRITING ═══ -->
+<div class="panel" id="panel-writing">
+  <div class="card" id="writing-intro">
+    <h2>Writing</h2>
+    <p class="desc">Traccia autentica valutata sui 4 criteri Cambridge / IELTS: Task Achievement, Coherence, Lexical Resource, Grammar.</p>
+    <div class="field-row">
+      <div class="field-label">Tipo di testo</div>
+      <select id="writing-type">
+        <option value="formal letter">Formal letter</option>
+        <option value="discursive essay">Discursive essay</option>
+        <option value="semi-formal email">Semi-formal email</option>
+        <option value="report">Report</option>
+        <option value="opinion article">Opinion article</option>
+      </select>
+    </div>
+    <button class="btn-primary" onclick="startWriting()">▶ Genera traccia</button>
+  </div>
+  <div id="writing-exercise" class="hidden">
+    <div class="card">
+      <div class="section-heading">Traccia</div>
+      <div id="writing-prompt" class="ai-text loading">Generazione traccia<span class="loading-dots"></span></div>
+    </div>
+    <div class="card hidden" id="writing-input-card">
+      <div class="section-heading">La tua risposta</div>
+      <textarea class="writing-textarea" id="writing-answer" placeholder="Scrivi qui la tua risposta…" oninput="updateWordCount()"></textarea>
+      <div class="word-count" id="word-count">0 parole</div>
+      <div class="btn-row" style="margin-top:12px">
+        <button class="btn-primary" onclick="submitWriting()">✓ Invia per valutazione</button>
+        <button class="btn-secondary" onclick="resetWriting()">↺</button>
+      </div>
+      <div id="writing-feedback" class="hidden"></div>
+      <div class="btn-row hidden" id="writing-next-row">
+        <button class="btn-primary" onclick="startWriting()">→ Nuova traccia</button>
+        <button class="btn-secondary" onclick="resetWriting()">Menu</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SPEAKING ═══ -->
+<div class="panel" id="panel-speaking">
+  <div class="card" id="speaking-intro">
+    <h2>Speaking</h2>
+    <p class="desc">Domanda o task card in stile IELTS / Cambridge Speaking. Scrivi la risposta come se parlassi ad alta voce: l'AI valuta fluency, vocabulary, grammar e ti suggerisce come migliorare.</p>
+    <div class="field-row">
+      <div class="field-label">Parte dell'esame</div>
+      <select id="speaking-part">
+        <option value="Part 1 — personal questions (answer in 2-3 sentences each)">Part 1 — Domande personali</option>
+        <option value="Part 2 — long turn (2 min monologue from a task card)">Part 2 — Long turn (2 min)</option>
+        <option value="Part 3 — abstract discussion questions">Part 3 — Discussione astratta</option>
+      </select>
+    </div>
+    <button class="btn-primary" onclick="startSpeaking()">▶ Genera domanda</button>
+  </div>
+  <div id="speaking-exercise" class="hidden">
+    <div class="speaking-card" id="speaking-prompt-card">
+      <div class="ai-text loading" id="speaking-prompt-text">Generazione domanda<span class="loading-dots"></span></div>
+    </div>
+    <div class="card hidden" id="speaking-input-card">
+      <div class="speaking-tips">
+        <strong>Tips:</strong> Usa hesitation phrases ("Well…", "That's interesting…"), linkers ("On the other hand", "Having said that"), e vocabolario avanzato. Scrivi come parli davvero.
+      </div>
+      <textarea class="writing-textarea" id="speaking-answer" placeholder="Scrivi qui la tua risposta orale…" style="margin-top:12px;min-height:140px"></textarea>
+      <div class="btn-row" style="margin-top:12px">
+        <button class="btn-primary" onclick="submitSpeaking()">✓ Analizza risposta</button>
+        <button class="btn-secondary" onclick="resetSpeaking()">↺</button>
+      </div>
+      <div id="speaking-feedback" class="hidden"></div>
+      <div class="btn-row hidden" id="speaking-next-row">
+        <button class="btn-primary" onclick="startSpeaking()">→ Prossima domanda</button>
+        <button class="btn-secondary" onclick="resetSpeaking()">Menu</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+// STATE & UTILS
+// ══════════════════════════════════════════
+let apiKey = localStorage.getItem('elt_api_key') || '';
+let stats = JSON.parse(localStorage.getItem('elt_stats') || '{"exercises":0,"totalScore":0,"scoreCount":0,"streak":0}');
+let readingData = null, listeningData = null, transcriptOpen = false;
+
+function getKey()   { return apiKey; }
+function getLevel() { return document.getElementById('level').value; }
+function getExam()  { return document.getElementById('exam').value; }
+
+function saveApiKey() {
+  const v = document.getElementById('api-key-input').value.trim();
+  if (!v.startsWith('sk-')) { showToast('Chiave non valida — deve iniziare con sk-'); return; }
+  apiKey = v;
+  localStorage.setItem('elt_api_key', v);
+  showToast('Chiave salvata ✓');
+}
+
+function showApiCheck() {
+  return true; // chiave gestita lato server Vercel
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+function switchTab(name) {
+  ['reading','listening','writing','speaking'].forEach(t => {
+    document.getElementById('panel-'+t).classList.toggle('active', t === name);
+    document.getElementById('tab-'+t).classList.toggle('active', t === name);
+  });
+}
+
+function updateStatsUI(score) {
+  stats.exercises++;
+  if (score !== null) { stats.totalScore += score; stats.scoreCount++; }
+  if (score !== null && score >= 70) stats.streak++; else if (score !== null) stats.streak = 0;
+  localStorage.setItem('elt_stats', JSON.stringify(stats));
+  renderStats();
+}
+
+function renderStats() {
+  // Stats shown in panels via progress bar — minimal, injected into header area if present
+}
+
+// Inject stats bar after tab bar on first load
+(function initStats() {
+  // nessun controllo chiave — gestita da Vercel
+})();
+
+// ══════════════════════════════════════════
+// API CALL
+// ══════════════════════════════════════════
+async function claude(userPrompt, systemPrompt) {
+  // Chiama il proxy Vercel — nessun problema CORS
+  const res = await fetch('/api/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 1200,
+      system: systemPrompt || 'You are an expert Cambridge and IELTS English language examiner and teacher.',
+      messages: [{ role: 'user', content: userPrompt }]
+    })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error?.message || 'Errore HTTP ' + res.status);
+  }
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message);
+  return data.content.map(c => c.text || '').join('');
+}
+
+
+function parseJSON(raw) {
+  return JSON.parse(raw.replace(/```json|```/g, '').trim());
+}
+
+function scorePill(score, outOf) {
+  const pct = Math.round(score / outOf * 100);
+  const cls = pct >= 70 ? 'score-good' : pct >= 50 ? 'score-mid' : 'score-low';
+  return `<span class="score-pill ${cls}">${score}/${outOf} — ${pct}%</span>`;
+}
+
+// ══════════════════════════════════════════
+// READING
+// ══════════════════════════════════════════
+function resetReading() {
+  document.getElementById('reading-exercise').classList.add('hidden');
+  document.getElementById('reading-intro').classList.remove('hidden');
+}
+
+async function startReading() {
+  if (!showApiCheck()) return;
+  const type = document.getElementById('reading-type').value;
+  document.getElementById('reading-intro').classList.add('hidden');
+  document.getElementById('reading-exercise').classList.remove('hidden');
+  document.getElementById('reading-submit-row').classList.add('hidden');
+  document.getElementById('reading-feedback').classList.add('hidden');
+  document.getElementById('reading-next-row').classList.add('hidden');
+
+  const passage = document.getElementById('reading-passage');
+  const qDiv    = document.getElementById('reading-questions');
+  passage.innerHTML = '<div class="ai-text loading">Generazione brano<span class="loading-dots"></span></div>';
+  qDiv.innerHTML = '';
+
+  const level = getLevel(), exam = getExam();
+
+  // Large rotating topic pool — ensures genuine variety every session
+  const readingTopics = [
+    "the neuroscience of habit formation","vertical farming and urban food systems",
+    "the psychology of procrastination","deep-sea mining and its environmental risks",
+    "how languages shape perception and thought","the gig economy and worker rights",
+    "bioluminescence in marine organisms","social media and teenage mental health",
+    "rewilding abandoned farmland in Europe","the history and science of fermentation",
+    "behavioural economics and nudge theory","quantum computing for non-specialists",
+    "the decline of insects and ecosystem collapse","remote work and city centre economics",
+    "ancient trade routes and cultural exchange","CRISPR gene editing in medicine",
+    "the psychology of colour in design","microplastics in the food chain",
+    "dark tourism and ethical travel","how cities manage heatwaves",
+    "the science of sleep and memory consolidation","nuclear fusion: promise and progress",
+    "the role of silence in music","deforestation and tipping points in the Amazon",
+    "citizen science and data crowdsourcing","the economics of football transfers",
+    "urban noise pollution and health","ancient DNA and human migration",
+    "the rise of ultra-processed food","digital nomadism and its social effects",
+    "the philosophy of boredom","coral reef restoration techniques",
+    "fast fashion and textile waste","the history of vaccination",
+    "loneliness as a public health crisis","smart cities and data privacy",
+    "the psychology of conspiracy theories","ocean acidification and shellfish farming",
+    "libraries in the digital age","the surprising complexity of ant colonies"
+  ];
+  const chosenTopic = readingTopics[Math.floor(Math.random() * readingTopics.length)];
+
+  let prompt = '';
+  if (type === 'multiple_choice') {
+    prompt = `Generate a ${exam}-style reading passage for ${level} on the topic: "${chosenTopic}". Make it factually accurate and engaging — not generic. 4 multiple choice questions.
+Return ONLY valid JSON: {"title":"...","text":"...(220-280 words)...","questions":[{"q":"...","options":["A) ...","B) ...","C) ...","D) ..."],"answer":"A"},{"q":"...","options":["A) ...","B) ...","C) ...","D) ..."],"answer":"B"},{"q":"...","options":["A) ...","B) ...","C) ...","D) ..."],"answer":"C"},{"q":"...","options":["A) ...","B) ...","C) ...","D) ..."],"answer":"D"}]}`;
+  } else if (type === 'tfng') {
+    prompt = `Generate a ${exam}-style reading passage for ${level} on the topic: "${chosenTopic}". 5 True/False/Not Given statements — ensure at least one NOT GIVEN.
+Return ONLY valid JSON: {"title":"...","text":"...(220-280 words)...","statements":[{"s":"statement text","answer":"TRUE"},{"s":"...","answer":"FALSE"},{"s":"...","answer":"NOT GIVEN"},{"s":"...","answer":"TRUE"},{"s":"...","answer":"FALSE"}]}`;
+  } else if (type === 'sentence_completion') {
+    prompt = `Generate a ${exam}-style reading passage for ${level} on the topic: "${chosenTopic}". 4 sentence completion questions — answers must be verbatim from the text (1-3 words).
+Return ONLY valid JSON: {"title":"...","text":"...(220-280 words)...","questions":[{"sentence":"The main cause of X was _____.","answer":"exact words from text"},{"sentence":"...","answer":"..."},{"sentence":"...","answer":"..."},{"sentence":"...","answer":"..."}]}`;
+  } else if (type === 'matching_headings') {
+    prompt = `Generate a ${exam}-style reading passage for ${level} on the topic: "${chosenTopic}". Exactly 4 clearly separated paragraphs (A, B, C, D). 6 headings (i-vi), 4 correct and 2 distractors.
+Return ONLY valid JSON: {"title":"...","paragraphs":[{"label":"A","text":"..."},{"label":"B","text":"..."},{"label":"C","text":"..."},{"label":"D","text":"..."}],"headings":["i. ...","ii. ...","iii. ...","iv. ...","v. ...","vi. ..."],"answers":{"A":"ii","B":"v","C":"i","D":"iv"}}`;
+  }
+
+  try {
+    const raw = await claude(prompt);
+    readingData = parseJSON(raw);
+    readingData.type = type;
+
+    // Render passage
+    if (type === 'matching_headings') {
+      passage.innerHTML = `<div class="passage-title">${readingData.title}</div>` +
+        readingData.paragraphs.map(p => `<p style="margin-bottom:10px"><strong>${p.label}</strong>&nbsp; ${p.text}</p>`).join('');
+    } else {
+      passage.innerHTML = `<div class="passage-title">${readingData.title}</div><div class="ai-text">${readingData.text}</div>`;
+    }
+
+    // Render questions
+    buildReadingQuestions(readingData, qDiv);
+    document.getElementById('reading-submit-row').classList.remove('hidden');
+  } catch (e) {
+    passage.innerHTML = `<div class="ai-text" style="color:var(--red-600)">Errore: ${e.message}. Riprova.</div>`;
+  }
+}
+
+function buildReadingQuestions(data, container) {
+  container.innerHTML = '';
+  const type = data.type;
+
+  if (type === 'multiple_choice') {
+    data.questions.forEach((q, i) => {
+      const block = document.createElement('div');
+      block.className = 'question-block';
+      block.innerHTML = `<div class="question-text">${i+1}. ${q.q}</div>`;
+      const opts = document.createElement('div');
+      opts.className = 'options-list';
+      q.options.forEach(opt => {
+        const btn = document.createElement('button');
+        btn.className = 'option-btn';
+        btn.textContent = opt;
+        btn.onclick = () => {
+          opts.querySelectorAll('.option-btn').forEach(b => { b.classList.remove('selected'); delete b.dataset.sel; });
+          btn.classList.add('selected'); btn.dataset.sel = '1';
+          opts.dataset.answer = opt.charAt(0);
+        };
+        opts.appendChild(btn);
+      });
+      opts.id = 'mc-' + i;
+      block.appendChild(opts);
+      container.appendChild(block);
+    });
+
+  } else if (type === 'tfng') {
+    data.statements.forEach((s, i) => {
+      const block = document.createElement('div');
+      block.className = 'question-block';
+      block.innerHTML = `<div class="question-text">${i+1}. ${s.s}</div>`;
+      const row = document.createElement('div');
+      row.className = 'tfng-row'; row.id = 'tfng-' + i;
+      ['TRUE','FALSE','NOT GIVEN'].forEach(val => {
+        const btn = document.createElement('button');
+        btn.className = 'tfng-btn'; btn.textContent = val === 'NOT GIVEN' ? 'Not Given' : val.charAt(0) + val.slice(1).toLowerCase();
+        btn.onclick = () => {
+          row.querySelectorAll('.tfng-btn').forEach(b => { b.classList.remove('selected'); delete b.dataset.sel; });
+          btn.classList.add('selected'); btn.dataset.sel = '1';
+          row.dataset.answer = val;
+        };
+        row.appendChild(btn);
+      });
+      block.appendChild(row);
+      container.appendChild(block);
+    });
+
+  } else if (type === 'sentence_completion') {
+    const sub = document.createElement('p');
+    sub.className = 'question-sub'; sub.textContent = 'Completa le frasi con parole prese dal testo (max 3 parole).';
+    container.appendChild(sub);
+    data.questions.forEach((q, i) => {
+      const block = document.createElement('div');
+      block.className = 'question-block';
+      const parts = q.sentence.split('_____');
+      block.innerHTML = `<div class="question-text">${i+1}. ${parts[0]}<strong>_______</strong>${parts[1] || ''}</div>`;
+      const inp = document.createElement('input');
+      inp.type = 'text'; inp.className = 'fill-input'; inp.id = 'fill-' + i;
+      inp.placeholder = 'Scrivi le parole dal testo…';
+      block.appendChild(inp);
+      container.appendChild(block);
+    });
+
+  } else if (type === 'matching_headings') {
+    const sub = document.createElement('p');
+    sub.className = 'question-sub'; sub.textContent = 'Abbina ogni paragrafo al titolo corretto. Due titoli sono in eccesso.';
+    container.appendChild(sub);
+    const headingsHtml = data.headings.map(h => `<div style="font-size:13px;padding:4px 0;color:var(--text-secondary)">${h}</div>`).join('');
+    const headCard = document.createElement('div');
+    headCard.style.cssText = 'background:var(--bg);border-radius:var(--radius-sm);border:1px solid var(--border);padding:12px 14px;margin-bottom:16px';
+    headCard.innerHTML = `<div class="field-label" style="margin-bottom:8px">Titoli disponibili</div>${headingsHtml}`;
+    container.appendChild(headCard);
+    data.paragraphs.forEach((p, i) => {
+      const block = document.createElement('div');
+      block.className = 'question-block';
+      block.innerHTML = `<div class="question-text">Paragrafo ${p.label}</div>`;
+      const sel = document.createElement('select');
+      sel.id = 'mh-' + i; sel.className = 'fill-input'; sel.style.height = '42px';
+      sel.innerHTML = '<option value="">— Scegli un titolo —</option>' +
+        data.headings.map((h,hi) => `<option value="${['i','ii','iii','iv','v','vi'][hi]}">${h}</option>`).join('');
+      block.appendChild(sel);
+      container.appendChild(block);
+    });
+  }
+}
+
+async function submitReading() {
+  const data = readingData;
+  const type = data.type;
+  let correct = 0, total = 0;
+
+  if (type === 'multiple_choice') {
+    data.questions.forEach((q, i) => {
+      const opts = document.getElementById('mc-' + i);
+      const given = opts ? opts.dataset.answer : null;
+      total++;
+      opts.querySelectorAll('.option-btn').forEach(btn => {
+        btn.onclick = null;
+        if (btn.textContent.charAt(0) === q.answer) btn.classList.add('correct');
+        else if (btn.dataset.sel === '1') btn.classList.add('wrong');
+        btn.classList.remove('selected');
+      });
+      if (given === q.answer) correct++;
+    });
+
+  } else if (type === 'tfng') {
+    data.statements.forEach((s, i) => {
+      const row = document.getElementById('tfng-' + i);
+      const given = row ? row.dataset.answer : null;
+      total++;
+      row.querySelectorAll('.tfng-btn').forEach(btn => {
+        btn.onclick = null;
+        const val = btn.textContent.toUpperCase().replace(' ', '_');
+        const bval = val === 'NOT_GIVEN' ? 'NOT GIVEN' : val;
+        if (bval === s.answer) btn.classList.add('correct');
+        else if (btn.dataset.sel === '1') btn.classList.add('wrong');
+        btn.classList.remove('selected');
+      });
+      if (given === s.answer) correct++;
+    });
+
+  } else if (type === 'sentence_completion') {
+    data.questions.forEach((q, i) => {
+      const inp = document.getElementById('fill-' + i);
+      const given = inp ? inp.value.trim().toLowerCase() : '';
+      const ans = q.answer.toLowerCase();
+      total++;
+      inp.disabled = true;
+      if (given === ans || ans.includes(given) && given.length > 3) { inp.classList.add('correct'); correct++; }
+      else { inp.classList.add('wrong'); inp.placeholder = 'Corretto: ' + q.answer; }
+    });
+
+  } else if (type === 'matching_headings') {
+    data.paragraphs.forEach((p, i) => {
+      const sel = document.getElementById('mh-' + i);
+      const given = sel ? sel.value : '';
+      const ans = data.answers[p.label];
+      total++;
+      sel.disabled = true;
+      if (given === ans) { sel.style.background = '#EAF3DE'; sel.style.borderColor = '#639922'; correct++; }
+      else { sel.style.background = '#FCEBEB'; sel.style.borderColor = '#E24B4A'; sel.value = ans; }
+    });
+  }
+
+  document.getElementById('reading-submit-row').classList.add('hidden');
+  const fb = document.getElementById('reading-feedback');
+  fb.classList.remove('hidden');
+  fb.innerHTML = '<div class="feedback-card ai-text loading">Analisi in corso<span class="loading-dots"></span></div>';
+
+  try {
+    const pct = Math.round(correct / total * 100);
+    const feedbackPrompt = `A ${getLevel()} student scored ${correct}/${total} on a ${type.replace('_',' ')} reading exercise (${getExam()} style). Give short feedback IN ITALIAN (3-4 sentences): encourage/congratulate, explain the main skill tested, give one concrete tip to improve reading for this question type. Be warm and direct.`;
+    const feedback = await claude(feedbackPrompt);
+    const pctReal = Math.round(correct/total*100);
+    fb.innerHTML = `<div class="feedback-card">${scorePill(correct, total)}<br><br>${feedback}</div>`;
+    updateStatsUI(pctReal);
+  } catch(e) {
+    fb.innerHTML = `<div class="feedback-card">${scorePill(correct, total)}</div>`;
+    updateStatsUI(Math.round(correct/total*100));
+  }
+  document.getElementById('reading-next-row').classList.remove('hidden');
+}
+
+// ══════════════════════════════════════════
+// LISTENING
+// ══════════════════════════════════════════
+function resetListening() {
+  if (window.speechSynthesis) window.speechSynthesis.cancel();
+  isPlaying = false;
+  document.getElementById('listening-exercise').classList.add('hidden');
+  document.getElementById('listening-intro').classList.remove('hidden');
+  transcriptOpen = false;
+}
+
+async function startListening() {
+  if (!showApiCheck()) return;
+  document.getElementById('listening-intro').classList.add('hidden');
+  document.getElementById('listening-exercise').classList.remove('hidden');
+  document.getElementById('listening-submit-row').classList.add('hidden');
+  document.getElementById('listening-feedback').classList.add('hidden');
+  document.getElementById('listening-next-row').classList.add('hidden');
+  if (window.speechSynthesis) window.speechSynthesis.cancel();
+  isPlaying = false;
+  document.getElementById('play-icon-svg').innerHTML = '<polygon points="5,3 19,12 5,21" fill="white"/>';
+  document.getElementById('audio-status').textContent = 'Premi ▶ per ascoltare';
+  document.getElementById('listen-title').textContent = 'Caricamento…';
+  document.getElementById('transcript-text').textContent = '';
+  document.getElementById('transcript-text').style.display = 'none';
+  document.getElementById('listening-questions').innerHTML = '';
+  transcriptOpen = false;
+  document.getElementById('transcript-toggle-label').textContent = 'Mostra trascrizione';
+
+  const listeningScenarios = [
+    "a university professor's lecture on climate adaptation","two flatmates negotiating household rules",
+    "a radio interview with a marine biologist","a job interview at a tech startup",
+    "a podcast episode on the psychology of money","a guided tour of a contemporary art museum",
+    "a city council meeting on cycling infrastructure","a doctor explaining a diagnosis to a patient",
+    "two friends debating whether to move abroad","a documentary narrator describing rewilding in Scotland",
+    "a cooking class instructor teaching fermentation","a financial advisor discussing retirement planning",
+    "a debate between two economists on Universal Basic Income","a travel documentary about life in rural Japan",
+    "a TED-style talk on the future of remote work","a university student asking their tutor for feedback",
+    "a news report on a breakthrough in renewable energy","a conversation between colleagues about AI in the workplace",
+    "a phone call between a customer and a support agent","a scientist presenting findings on microplastics",
+    "a gym trainer explaining a new fitness programme","a journalist interviewing a local mayor",
+    "two students planning a community project","a nutritionist discussing ultra-processed foods on a podcast",
+    "an architect presenting a sustainable housing design","a historian talking about ancient trade routes",
+    "a panel discussion on social media regulation","a librarian describing digital transformation in libraries",
+    "a nature documentary on bioluminescent sea creatures","two entrepreneurs pitching to an investor"
+  ];
+  const chosenScenario = listeningScenarios[Math.floor(Math.random() * listeningScenarios.length)];
+  const prompt = `Generate a ${getExam()}-style listening exercise for ${getLevel()} based on this scenario: "${chosenScenario}".
+The transcript must sound genuinely natural — use contractions, hesitations ('well', 'I mean', 'actually', 'you know'), realistic pacing and interruptions if dialogue. Make it specific and interesting, not generic.
+Return ONLY valid JSON: {"title":"[descriptive scenario title]","transcript":"[180-220 word realistic transcript]","questions":[{"q":"...","options":["A) ...","B) ...","C) ...","D) ..."],"answer":"A"},{"q":"...","options":["A) ...","B) ...","C) ...","D) ..."],"answer":"B"},{"q":"...","options":["A) ...","B) ...","C) ...","D) ..."],"answer":"C"}]}`;
+
+  try {
+    const raw = await claude(prompt);
+    listeningData = parseJSON(raw);
+    document.getElementById('listen-title').textContent = listeningData.title;
+    document.getElementById('transcript-text').textContent = listeningData.transcript;
+
+    const qDiv = document.getElementById('listening-questions');
+    listeningData.questions.forEach((q, i) => {
+      const block = document.createElement('div');
+      block.className = 'question-block';
+      block.innerHTML = `<div class="question-text">${i+1}. ${q.q}</div>`;
+      const opts = document.createElement('div');
+      opts.className = 'options-list'; opts.id = 'lmc-' + i;
+      q.options.forEach(opt => {
+        const btn = document.createElement('button');
+        btn.className = 'option-btn'; btn.textContent = opt;
+        btn.onclick = () => {
+          opts.querySelectorAll('.option-btn').forEach(b => { b.classList.remove('selected'); delete b.dataset.sel; });
+          btn.classList.add('selected'); btn.dataset.sel = '1';
+          opts.dataset.answer = opt.charAt(0);
+        };
+        opts.appendChild(btn);
+      });
+      block.appendChild(opts);
+      qDiv.appendChild(block);
+    });
+    document.getElementById('listening-submit-row').classList.remove('hidden');
+  } catch(e) {
+    document.getElementById('listen-title').textContent = 'Errore: ' + e.message;
+  }
+}
+
+// ── WEB SPEECH API AUDIO ──────────────────
+let speechUtterance = null;
+let isPlaying = false;
+
+function playAudio() {
+  if (!listeningData || !listeningData.transcript) return;
+  if (!window.speechSynthesis) {
+    document.getElementById('audio-status').textContent = 'Audio non supportato — usa la trascrizione';
+    return;
+  }
+  if (isPlaying) {
+    window.speechSynthesis.cancel();
+    isPlaying = false;
+    document.getElementById('play-icon-svg').innerHTML = '<polygon points="5,3 19,12 5,21" fill="white"/>';
+    document.getElementById('audio-status').textContent = 'Premi ▶ per ascoltare';
+    return;
+  }
+  speechUtterance = new SpeechSynthesisUtterance(listeningData.transcript);
+  speechUtterance.lang = 'en-GB';
+  speechUtterance.rate = 0.88;
+  speechUtterance.pitch = 1;
+  // Try to pick a good English voice
+  const voices = window.speechSynthesis.getVoices();
+  const enVoice = voices.find(v => v.lang.startsWith('en-') && v.name.toLowerCase().includes('daniel'))
+    || voices.find(v => v.lang === 'en-GB')
+    || voices.find(v => v.lang.startsWith('en-'));
+  if (enVoice) speechUtterance.voice = enVoice;
+  speechUtterance.onstart = () => {
+    isPlaying = true;
+    document.getElementById('play-icon-svg').innerHTML = '<rect x="6" y="4" width="4" height="16" fill="white"/><rect x="14" y="4" width="4" height="16" fill="white"/>';
+    document.getElementById('audio-status').textContent = 'In riproduzione…';
+  };
+  speechUtterance.onend = () => {
+    isPlaying = false;
+    document.getElementById('play-icon-svg').innerHTML = '<polygon points="5,3 19,12 5,21" fill="white"/>';
+    document.getElementById('audio-status').textContent = 'Fine — premi ▶ per riascoltare';
+  };
+  speechUtterance.onerror = () => {
+    isPlaying = false;
+    document.getElementById('play-icon-svg').innerHTML = '<polygon points="5,3 19,12 5,21" fill="white"/>';
+    document.getElementById('audio-status').textContent = 'Errore audio — usa la trascrizione';
+  };
+  window.speechSynthesis.speak(speechUtterance);
+}
+
+function toggleTranscript() {
+  transcriptOpen = !transcriptOpen;
+  document.getElementById('transcript-text').style.display = transcriptOpen ? 'block' : 'none';
+  document.getElementById('transcript-toggle-label').textContent = transcriptOpen ? 'Nascondi trascrizione' : 'Mostra trascrizione';
+}
+
+async function submitListening() {
+  let correct = 0, total = listeningData.questions.length;
+  listeningData.questions.forEach((q, i) => {
+    const opts = document.getElementById('lmc-' + i);
+    const given = opts ? opts.dataset.answer : null;
+    if (given === q.answer) correct++;
+    opts.querySelectorAll('.option-btn').forEach(btn => {
+      btn.onclick = null;
+      if (btn.textContent.charAt(0) === q.answer) btn.classList.add('correct');
+      else if (btn.dataset.sel === '1') btn.classList.add('wrong');
+      btn.classList.remove('selected');
+    });
+  });
+  document.getElementById('listening-submit-row').classList.add('hidden');
+  const fb = document.getElementById('listening-feedback');
+  fb.classList.remove('hidden');
+  fb.innerHTML = '<div class="feedback-card ai-text loading">Analisi<span class="loading-dots"></span></div>';
+  try {
+    const pct = Math.round(correct/total*100);
+    const feedbackPrompt = `${getLevel()} student scored ${correct}/${total} on a ${getExam()} listening task. Give short feedback IN ITALIAN (3-4 sentences): what listening skills this tests, likely error reasons, one practical improvement tip for Italian learners. Warm tone.`;
+    const feedback = await claude(feedbackPrompt);
+    fb.innerHTML = `<div class="feedback-card">${scorePill(correct, total)}<br><br>${feedback}</div>`;
+    updateStatsUI(pct);
+  } catch(e) {
+    fb.innerHTML = `<div class="feedback-card">${scorePill(correct, total)}</div>`;
+    updateStatsUI(Math.round(correct/total*100));
+  }
+  document.getElementById('listening-next-row').classList.remove('hidden');
+}
+
+// ══════════════════════════════════════════
+// WRITING
+// ══════════════════════════════════════════
+function resetWriting() {
+  document.getElementById('writing-exercise').classList.add('hidden');
+  document.getElementById('writing-intro').classList.remove('hidden');
+}
+function updateWordCount() {
+  const txt = document.getElementById('writing-answer').value.trim();
+  const n = txt ? txt.split(/\s+/).length : 0;
+  document.getElementById('word-count').textContent = n + ' parole';
+}
+
+async function startWriting() {
+  if (!showApiCheck()) return;
+  const type = document.getElementById('writing-type').value;
+  const level = getLevel(), exam = getExam();
+  const minWords = (level === 'B1' || level === 'B2') ? 150 : 250;
+  document.getElementById('writing-intro').classList.add('hidden');
+  document.getElementById('writing-exercise').classList.remove('hidden');
+  document.getElementById('writing-input-card').classList.add('hidden');
+  document.getElementById('writing-feedback').classList.add('hidden');
+  document.getElementById('writing-next-row').classList.add('hidden');
+  document.getElementById('writing-answer').value = '';
+  document.getElementById('word-count').textContent = '0 parole';
+  const wp = document.getElementById('writing-prompt');
+  wp.className = 'ai-text loading';
+  wp.innerHTML = 'Generazione traccia<span class="loading-dots"></span>';
+
+  try {
+    const writingContexts = [
+      "a workplace introducing a four-day working week","a city considering banning single-use plastics",
+      "a school debating whether to remove smartphones from classrooms","a company offering remote-work-only contracts",
+      "a neighbourhood planning a community garden on unused land","a university introducing mandatory volunteering for students",
+      "a government proposal to tax frequent flyers","a business switching entirely to renewable energy",
+      "a hospital implementing AI diagnostic tools","a city council proposing free public transport",
+      "a company replacing its canteen with a plant-based-only menu","a country debating lowering the voting age to 16",
+      "a tech firm launching a digital detox programme for employees","a town losing its last bank branch",
+      "a museum making all its collections available online for free","an employer introducing mandatory mental health days",
+      "a country proposing a national data privacy law","a hotel chain going completely single-use-plastic free",
+      "a city installing extensive EV charging infrastructure","a university offering AI literacy as a compulsory module"
+    ];
+    const chosenContext = writingContexts[Math.floor(Math.random() * writingContexts.length)];
+    const prompt = `Write a realistic ${exam}-style ${type} writing task for ${level}, set in this specific context: "${chosenContext}". The task must feel fresh and specific — not generic. Include situation, bullet points of required content, word limit ${minWords}–${minWords+50} words. Reply with ONLY the task prompt in English, formatted clearly.`;
+    const taskText = await claude(prompt);
+    wp.className = 'ai-text'; wp.textContent = taskText;
+    document.getElementById('writing-input-card').classList.remove('hidden');
+  } catch(e) {
+    wp.className = 'ai-text'; wp.style.color = 'var(--red-600)'; wp.textContent = 'Errore: ' + e.message;
+  }
+}
+
+async function submitWriting() {
+  const answer = document.getElementById('writing-answer').value.trim();
+  if (!answer || answer.split(/\s+/).length < 30) { showToast('Scrivi almeno qualche frase!'); return; }
+  const type = document.getElementById('writing-type').value;
+  const fb = document.getElementById('writing-feedback');
+  fb.classList.remove('hidden');
+  fb.innerHTML = '<div class="feedback-card ai-text loading">L\'AI valuta il tuo testo<span class="loading-dots"></span></div>';
+  document.querySelector('#writing-input-card .btn-row').style.display = 'none';
+
+  const prompt = `You are a ${getExam()} examiner. Evaluate this ${getLevel()} student's ${type}.
+TEXT: "${answer}"
+Score in Italian on 4 criteria (0-25 each). Use this EXACT format:
+PUNTEGGIO TOTALE: X/100
+────────────────────
+Task Achievement: X/25 — [one sentence]
+Coherence & Cohesion: X/25 — [one sentence]
+Lexical Resource: X/25 — [one sentence]
+Grammatica: X/25 — [one sentence]
+────────────────────
+✓ PUNTI DI FORZA:
+• [point 1]
+• [point 2]
+⚠ DA MIGLIORARE:
+• [specific issue with example from text]
+• [specific issue]
+💡 RISCRITTURA: [rewrite one sentence from their text in a more advanced way]`;
+
+  try {
+    const feedback = await claude(prompt);
+    const m = feedback.match(/PUNTEGGIO TOTALE:\s*(\d+)/);
+    const score = m ? parseInt(m[1]) : null;
+    fb.innerHTML = `<div class="feedback-card">${feedback}</div>`;
+    updateStatsUI(score);
+  } catch(e) {
+    fb.innerHTML = `<div class="feedback-card" style="color:var(--red-600)">Errore valutazione: ${e.message}</div>`;
+  }
+  document.getElementById('writing-next-row').classList.remove('hidden');
+}
+
+// ══════════════════════════════════════════
+// SPEAKING
+// ══════════════════════════════════════════
+function resetSpeaking() {
+  document.getElementById('speaking-exercise').classList.add('hidden');
+  document.getElementById('speaking-intro').classList.remove('hidden');
+}
+
+async function startSpeaking() {
+  if (!showApiCheck()) return;
+  const part = document.getElementById('speaking-part').value;
+  document.getElementById('speaking-intro').classList.add('hidden');
+  document.getElementById('speaking-exercise').classList.remove('hidden');
+  document.getElementById('speaking-input-card').classList.add('hidden');
+  document.getElementById('speaking-feedback').classList.add('hidden');
+  document.getElementById('speaking-next-row').classList.add('hidden');
+  document.getElementById('speaking-answer').value = '';
+  const sp = document.getElementById('speaking-prompt-text');
+  sp.className = 'ai-text loading';
+  sp.innerHTML = 'Generazione domanda<span class="loading-dots"></span>';
+
+  try {
+    const prompt = `Generate a ${getExam()} ${part} speaking question/task card for ${getLevel()}. If Part 2, include the task card format with "Talk about…", 4 bullet points, and "You have 1 minute to prepare." Reply ONLY with the question or task card in English.`;
+    const question = await claude(prompt);
+    sp.className = 'ai-text'; sp.textContent = question;
+    document.getElementById('speaking-input-card').classList.remove('hidden');
+  } catch(e) {
+    sp.className = 'ai-text'; sp.style.color = 'var(--red-600)'; sp.textContent = 'Errore: ' + e.message;
+  }
+}
+
+async function submitSpeaking() {
+  const answer = document.getElementById('speaking-answer').value.trim();
+  if (!answer || answer.split(/\s+/).length < 10) { showToast('Scrivi qualcosa prima di inviare!'); return; }
+  const part = document.getElementById('speaking-part').value;
+  const fb = document.getElementById('speaking-feedback');
+  fb.classList.remove('hidden');
+  fb.innerHTML = '<div class="feedback-card ai-text loading">Analisi della risposta<span class="loading-dots"></span></div>';
+  document.querySelector('#speaking-input-card .btn-row').style.display = 'none';
+
+  const prompt = `You are a ${getExam()} speaking examiner. Evaluate this ${getLevel()} student's ${part} response.
+RESPONSE: "${answer}"
+Give feedback IN ITALIAN in this EXACT format:
+PUNTEGGIO SPEAKING: X/100
+────────────────────
+Fluency & Coherence: X/25 — [one sentence]
+Lexical Resource: X/25 — [one sentence]
+Grammatica: X/25 — [one sentence]
+Pronuncia (tips): X/25 — [pronunciation challenges for Italian speakers based on words used]
+────────────────────
+✓ PUNTI DI FORZA:
+• [what they did well]
+• [another strength]
+⚠ DA MIGLIORARE:
+• [specific suggestion]
+• [specific suggestion]
+💡 RISCRITTURA: [rewrite one of their sentences in a more natural/fluent spoken English way]`;
+
+  try {
+    const feedback = await claude(prompt);
+    const m = feedback.match(/PUNTEGGIO SPEAKING:\s*(\d+)/);
+    const score = m ? parseInt(m[1]) : null;
+    fb.innerHTML = `<div class="feedback-card">${feedback}</div>`;
+    updateStatsUI(score);
+  } catch(e) {
+    fb.innerHTML = `<div class="feedback-card" style="color:var(--red-600)">Errore: ${e.message}</div>`;
+  }
+  document.getElementById('speaking-next-row').classList.remove('hidden');
+}
+
+// ══════════════════════════════════════════
+// API KEY MODAL
+// ══════════════════════════════════════════
+function openApiModal() {
+  const modal = document.getElementById('api-modal');
+  const display = document.getElementById('modal-key-display');
+  const currentSection = document.getElementById('modal-current');
+  const deleteBtn = document.getElementById('btn-delete-key');
+  const inputLabel = document.getElementById('modal-input-label');
+  document.getElementById('modal-key-input').value = '';
+
+  if (apiKey) {
+    const masked = apiKey.slice(0, 10) + '••••••••••••••••' + apiKey.slice(-4);
+    display.textContent = masked;
+    currentSection.style.display = 'block';
+    deleteBtn.style.display = 'block';
+    inputLabel.textContent = 'Sostituisci con nuova chiave';
+  } else {
+    currentSection.style.display = 'none';
+    deleteBtn.style.display = 'none';
+    inputLabel.textContent = 'Inserisci chiave';
+  }
+  modal.classList.add('open');
+  setTimeout(() => document.getElementById('modal-key-input').focus(), 300);
+}
+
+function closeApiModal() {
+  document.getElementById('api-modal').classList.remove('open');
+}
+
+function handleModalClick(e) {
+  if (e.target === document.getElementById('api-modal')) closeApiModal();
+}
+
+function saveApiKeyModal() {
+  const v = document.getElementById('modal-key-input').value.trim();
+  if (!v) { closeApiModal(); return; }
+  if (!v.startsWith('sk-')) { showToast('Chiave non valida — deve iniziare con sk-'); return; }
+  apiKey = v;
+  localStorage.setItem('elt_api_key', v);
+  updateKeyIndicator();
+  closeApiModal();
+  showToast('Chiave salvata ✓');
+}
+
+function deleteApiKey() {
+  if (!confirm('Eliminare la chiave API salvata?')) return;
+  apiKey = '';
+  localStorage.removeItem('elt_api_key');
+  updateKeyIndicator();
+  closeApiModal();
+  showToast('Chiave eliminata');
+}
+
+function updateKeyIndicator() {
+  const ind = document.getElementById('key-indicator');
+  if (apiKey) { ind.classList.remove('missing'); }
+  else { ind.classList.add('missing'); }
+}
+
+// old inline save (banner still works too)
+function saveApiKey() {
+  const v = document.getElementById('api-key-input').value.trim();
+  if (!v.startsWith('sk-')) { showToast('Chiave non valida — deve iniziare con sk-'); return; }
+  apiKey = v;
+  localStorage.setItem('elt_api_key', v);
+  updateKeyIndicator();
+  showToast('Chiave salvata ✓');
+}
+
+// Init: check saved key
+if (apiKey) {
+  updateKeyIndicator();
+}
+</script>
+</body>
+</html>
